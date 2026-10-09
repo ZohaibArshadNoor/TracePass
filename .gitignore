@@ -1,0 +1,36 @@
+# .NET
+**/bin/
+**/obj/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Python
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+*.pyc
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+appsettings.json
+appsettings.*.json
+
+# IDE
+.vs/
+.vscode/
+.idea/
+**/*.csproj.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/
+
+# PostgreSQL
+*.sql.bak

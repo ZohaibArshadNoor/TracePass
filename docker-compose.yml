@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tracepass-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tracepass
+      POSTGRES_USER: tracepass
+      POSTGRES_PASSWORD: tracepass_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - tracepass_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  tracepass_postgres_data:

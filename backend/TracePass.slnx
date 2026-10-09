@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TracePass.Api/TracePass.Api.csproj" />
+    <Project Path="src/TracePass.Application/TracePass.Application.csproj" />
+    <Project Path="src/TracePass.Domain/TracePass.Domain.csproj" />
+    <Project Path="src/TracePass.Infrastructure/TracePass.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TracePass.IntegrationTests/TracePass.IntegrationTests.csproj" />
+    <Project Path="tests/TracePass.UnitTests/TracePass.UnitTests.csproj" />
+  </Folder>
+</Solution>
