@@ -9,16 +9,24 @@ using Serilog;
 using System.Security.Claims;
 using System.Text;
 using TracePass.Application.Authentication;
+using TracePass.Application.Organizations;
+using TracePass.Application.Users;
 using TracePass.Infrastructure.Configuration;
 using TracePass.Infrastructure.Data;
 using TracePass.Infrastructure.Data.Seeding;
 using TracePass.Infrastructure.Identity;
 using TracePass.Infrastructure.Services;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter());
+    }); builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -151,6 +159,20 @@ builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddScoped<
     ITracePassAuthenticationService,
     TracePassAuthenticationService>();
+
+builder.Services.AddScoped<
+    IOrganizationService,
+    OrganizationService>();
+
+builder.Services.AddScoped<
+    IUserManagementService,
+    UserManagementService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<
+    OrganizationValidator>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<
+    CreateUserValidator>();
 
 var app = builder.Build();
 

@@ -8,10 +8,6 @@
     <PackageReference Include="FluentValidation" Version="12.2.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Organizations\" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
