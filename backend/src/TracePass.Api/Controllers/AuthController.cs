@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TracePass.Application.Authentication;
@@ -34,6 +34,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
+                message = "Validation failed.",
                 errors = validationResult.Errors.Select(error => new
                 {
                     field = error.PropertyName,
@@ -113,7 +114,10 @@ public class AuthController : ControllerBase
 
         if (user is null)
         {
-            return Unauthorized();
+            return Unauthorized(new
+            {
+                message = "User identity is invalid or the account is no longer active."
+            });
         }
 
         return Ok(user);

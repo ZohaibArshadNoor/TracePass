@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TracePass.Application.Organizations;
@@ -34,7 +34,7 @@ public class OrganizationsController : ControllerBase
             await _organizationService.GetByIdAsync(id);
 
         return organization is null
-            ? NotFound()
+            ? NotFound(new { message = $"Organization with ID '{id}' was not found." })
             : Ok(organization);
     }
 
@@ -46,7 +46,15 @@ public class OrganizationsController : ControllerBase
 
         if (!validation.IsValid)
         {
-            return BadRequest(validation.Errors);
+            return BadRequest(new
+            {
+                message = "Validation failed.",
+                errors = validation.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                })
+            });
         }
 
         var organization =
@@ -67,14 +75,22 @@ public class OrganizationsController : ControllerBase
 
         if (!validation.IsValid)
         {
-            return BadRequest(validation.Errors);
+            return BadRequest(new
+            {
+                message = "Validation failed.",
+                errors = validation.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    message = error.ErrorMessage
+                })
+            });
         }
 
         var organization =
             await _organizationService.UpdateAsync(id, request);
 
         return organization is null
-            ? NotFound()
+            ? NotFound(new { message = $"Organization with ID '{id}' was not found." })
             : Ok(organization);
     }
 
@@ -84,6 +100,8 @@ public class OrganizationsController : ControllerBase
         var success =
             await _organizationService.DeactivateAsync(id);
 
-        return success ? NoContent() : NotFound();
+        return success
+            ? NoContent()
+            : NotFound(new { message = $"Organization with ID '{id}' was not found." });
     }
 }
