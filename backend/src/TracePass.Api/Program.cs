@@ -1,13 +1,25 @@
+
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Security.Claims;
+using System.Text;
+using TracePass.Application.Authentication;
+using TracePass.Infrastructure.Configuration;
 using TracePass.Infrastructure.Data;
+using TracePass.Infrastructure.Data.Seeding;
+using TracePass.Infrastructure.Identity;
+using TracePass.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Service Registrations (BEFORE builder.Build())
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -16,12 +28,117 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "Digital Product Passport & Compliance Platform API for Garment and Textile Exporters."
     });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter a valid JWT access token."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-// Register DbContext here
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services
+    .AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+var jwtSettings = builder.Configuration
+    .GetSection(JwtSettings.SectionName)
+    .Get<JwtSettings>()
+    ?? throw new InvalidOperationException("JWT settings are missing.");
+
+if (string.IsNullOrWhiteSpace(jwtSettings.Issuer) ||
+    string.IsNullOrWhiteSpace(jwtSettings.Audience) ||
+    string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
+{
+    throw new InvalidOperationException(
+        "JWT issuer, audience, and secret key must be configured.");
+}
+
+var signingKey = Encoding.UTF8.GetBytes(jwtSettings.SecretKey);
+
+if (signingKey.Length < 32)
+{
+    throw new InvalidOperationException(
+        "The JWT secret key must contain at least 32 bytes.");
+}
+
+builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(jwtSettings));
+builder.Services.AddSingleton(jwtSettings);
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultForbidScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(signingKey),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30),
+
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdministratorOnly", policy =>
+        policy.RequireRole(TracePassRoles.Administrator));
+
+    options.AddPolicy("ManufacturerOnly", policy =>
+        policy.RequireRole(TracePassRoles.Manufacturer));
+
+    options.AddPolicy("SupplierOnly", policy =>
+        policy.RequireRole(TracePassRoles.Supplier));
+
+    options.AddPolicy("DistributorOnly", policy =>
+        policy.RequireRole(TracePassRoles.Distributor));
+
+    options.AddPolicy("BuyerOnly", policy =>
+        policy.RequireRole(TracePassRoles.Buyer));
+
+    options.AddPolicy("AuditorOnly", policy =>
+        policy.RequireRole(TracePassRoles.Auditor));
+});
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -29,18 +146,38 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// 2. Build the Application
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+
+builder.Services.AddScoped<
+    ITracePassAuthenticationService,
+    TracePassAuthenticationService>();
+
 var app = builder.Build();
 
+// Initialize the database's default Identity roles and administrator.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
 
-// 3. HTTP Request Pipeline (AFTER builder.Build())
+    var roleManager =
+        services.GetRequiredService<RoleManager<IdentityRole>>();
+
+    var userManager =
+        services.GetRequiredService<UserManager<ApplicationUser>>();
+
+    await IdentitySeeder.SeedAsync(
+        roleManager,
+        userManager,
+        app.Configuration);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    app.UseSwaggerUI(options =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TracePass API v1");
-        c.RoutePrefix = string.Empty;
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "TracePass API v1");
+        options.RoutePrefix = string.Empty;
     });
 }
 else
@@ -48,9 +185,9 @@ else
     app.UseHttpsRedirection();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Health Check Endpoint (Phase 0)
 app.MapGet("/health", async (ApplicationDbContext dbContext) =>
 {
     var canConnect = await dbContext.Database.CanConnectAsync();
