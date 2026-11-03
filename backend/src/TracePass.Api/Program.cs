@@ -8,15 +8,17 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 using TracePass.Application.Authentication;
+using TracePass.Application.Common.Interfaces;
 using TracePass.Application.Organizations;
 using TracePass.Application.Users;
 using TracePass.Infrastructure.Configuration;
 using TracePass.Infrastructure.Data;
 using TracePass.Infrastructure.Data.Seeding;
 using TracePass.Infrastructure.Identity;
+using TracePass.Infrastructure.Security;
 using TracePass.Infrastructure.Services;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -173,6 +175,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<
 
 builder.Services.AddValidatorsFromAssemblyContaining<
     CreateUserValidator>();
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 
