@@ -170,11 +170,25 @@ builder.Services.AddScoped<
     IUserManagementService,
     UserManagementService>();
 
+builder.Services.AddScoped<
+    TracePass.Application.Materials.IMaterialService,
+    TracePass.Infrastructure.Services.MaterialService>();
+
+builder.Services.AddScoped<
+    TracePass.Application.Suppliers.ISupplierService,
+    TracePass.Infrastructure.Services.SupplierService>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<
     OrganizationValidator>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<
     CreateUserValidator>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<
+    TracePass.Application.Materials.CreateMaterialValidator>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<
+    TracePass.Application.Suppliers.UpdateSupplierProfileValidator>();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -182,7 +196,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 
-// Initialize the database's default Identity roles and administrator.
+// Initialize the database's default Identity roles, administrator, and master data.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -193,10 +207,15 @@ using (var scope = app.Services.CreateScope())
     var userManager =
         services.GetRequiredService<UserManager<ApplicationUser>>();
 
+    var dbContext =
+        services.GetRequiredService<ApplicationDbContext>();
+
     await IdentitySeeder.SeedAsync(
         roleManager,
         userManager,
         app.Configuration);
+
+    await MasterDataSeeder.SeedAsync(dbContext);
 }
 
 if (app.Environment.IsDevelopment())

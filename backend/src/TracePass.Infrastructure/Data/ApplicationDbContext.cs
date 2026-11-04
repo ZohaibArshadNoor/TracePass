@@ -1,4 +1,3 @@
-﻿
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TracePass.Domain.Entities;
@@ -17,6 +16,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Organization> Organizations => Set<Organization>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Material> Materials => Set<Material>();
+
+    public DbSet<SupplierProfile> SupplierProfiles => Set<SupplierProfile>();
+
+    public DbSet<SupplierMaterialCategory> SupplierMaterialCategories => Set<SupplierMaterialCategory>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -85,8 +90,59 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(token => token.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.Entity<Material>(entity =>
+        {
+            entity.HasKey(material => material.Id);
+
+            entity.Property(material => material.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(material => material.Category)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(material => material.OriginCountry)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(material => material.Notes)
+                .HasMaxLength(1000);
+
+            entity.HasIndex(material => material.Name);
+            entity.HasIndex(material => material.Category);
+        });
+
+        builder.Entity<SupplierProfile>(entity =>
+        {
+            entity.HasKey(profile => profile.Id);
+
+            entity.Property(profile => profile.Rating)
+                .HasPrecision(3, 2);
+
+            entity.Property(profile => profile.Notes)
+                .HasMaxLength(1000);
+
+            entity.HasOne(profile => profile.Organization)
+                .WithOne()
+                .HasForeignKey<SupplierProfile>(profile => profile.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SupplierMaterialCategory>(entity =>
+        {
+            entity.HasKey(smc => new { smc.SupplierProfileId, smc.Category });
+
+            entity.Property(smc => smc.Category)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.HasOne(smc => smc.SupplierProfile)
+                .WithMany(profile => profile.MaterialCategories)
+                .HasForeignKey(smc => smc.SupplierProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
-
-
-
 }

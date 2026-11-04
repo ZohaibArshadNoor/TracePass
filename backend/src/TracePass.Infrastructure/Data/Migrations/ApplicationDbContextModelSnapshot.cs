@@ -154,6 +154,49 @@ namespace TracePass.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("TracePass.Domain.Entities.Material", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OriginCountry")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Materials");
+                });
+
             modelBuilder.Entity("TracePass.Domain.Entities.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -202,6 +245,51 @@ namespace TracePass.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Organizations");
+                });
+
+            modelBuilder.Entity("TracePass.Domain.Entities.SupplierMaterialCategory", b =>
+                {
+                    b.Property<Guid>("SupplierProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("SupplierProfileId", "Category");
+
+                    b.ToTable("SupplierMaterialCategories");
+                });
+
+            modelBuilder.Entity("TracePass.Domain.Entities.SupplierProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Rating")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("numeric(3,2)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique();
+
+                    b.ToTable("SupplierProfiles");
                 });
 
             modelBuilder.Entity("TracePass.Infrastructure.Identity.ApplicationUser", b =>
@@ -381,6 +469,28 @@ namespace TracePass.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TracePass.Domain.Entities.SupplierMaterialCategory", b =>
+                {
+                    b.HasOne("TracePass.Domain.Entities.SupplierProfile", "SupplierProfile")
+                        .WithMany("MaterialCategories")
+                        .HasForeignKey("SupplierProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SupplierProfile");
+                });
+
+            modelBuilder.Entity("TracePass.Domain.Entities.SupplierProfile", b =>
+                {
+                    b.HasOne("TracePass.Domain.Entities.Organization", "Organization")
+                        .WithOne()
+                        .HasForeignKey("TracePass.Domain.Entities.SupplierProfile", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+                });
+
             modelBuilder.Entity("TracePass.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.HasOne("TracePass.Domain.Entities.Organization", "Organization")
@@ -400,6 +510,11 @@ namespace TracePass.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TracePass.Domain.Entities.SupplierProfile", b =>
+                {
+                    b.Navigation("MaterialCategories");
                 });
 #pragma warning restore 612, 618
         }
