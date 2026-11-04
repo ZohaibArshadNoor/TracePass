@@ -6,6 +6,8 @@ public interface ICurrentUser
 
     bool IsAuthenticated { get; }
 
+    bool IsAdministrator { get; }
+
     Task<Guid?> GetOrganizationIdAsync(
         CancellationToken cancellationToken = default);
 }

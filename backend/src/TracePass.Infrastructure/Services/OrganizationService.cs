@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TracePass.Application.Common.Interfaces;
 using TracePass.Application.Organizations;
 using TracePass.Domain.Entities;
 using TracePass.Infrastructure.Data;
@@ -8,10 +9,14 @@ namespace TracePass.Infrastructure.Services;
 public class OrganizationService : IOrganizationService
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly ICurrentUser _currentUser;
 
-    public OrganizationService(ApplicationDbContext dbContext)
+    public OrganizationService(
+      ApplicationDbContext dbContext,
+      ICurrentUser currentUser)
     {
         _dbContext = dbContext;
+        _currentUser = currentUser;
     }
 
     public async Task<IReadOnlyList<OrganizationResponse>> GetAllAsync()
@@ -117,5 +122,33 @@ public class OrganizationService : IOrganizationService
             CreatedAt = organization.CreatedAt,
             UpdatedAt = organization.UpdatedAt
         };
+    }
+    public async Task<OrganizationResponse?> GetAccessibleByIdAsync(
+    Guid id)
+    {
+        if (!_currentUser.IsAuthenticated)
+        {
+            return null;
+        }
+
+        var isAdministrator = _currentUser.IsAdministrator;
+
+        var organizationId = isAdministrator
+            ? null
+            : await _currentUser.GetOrganizationIdAsync();
+
+        if (!isAdministrator &&
+            (organizationId is null || organizationId.Value != id))
+        {
+            return null;
+        }
+
+        var organization = await _dbContext.Organizations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id && x.IsActive);
+
+        return organization is null
+            ? null
+            : MapToResponse(organization);
     }
 }

@@ -7,7 +7,7 @@ namespace TracePass.Api.Controllers;
 
 [ApiController]
 [Route("api/organizations")]
-[Authorize(Policy = "AdministratorOnly")]
+[Authorize]
 public class OrganizationsController : ControllerBase
 {
     private readonly IOrganizationService _organizationService;
@@ -22,6 +22,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "AdministratorOnly")]
     public async Task<IActionResult> GetAll()
     {
         return Ok(await _organizationService.GetAllAsync());
@@ -31,14 +32,18 @@ public class OrganizationsController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var organization =
-            await _organizationService.GetByIdAsync(id);
+            await _organizationService.GetAccessibleByIdAsync(id);
 
         return organization is null
-            ? NotFound(new { message = $"Organization with ID '{id}' was not found." })
+            ? NotFound(new
+            {
+                message = $"Organization with ID '{id}' was not found."
+            })
             : Ok(organization);
     }
 
     [HttpPost]
+    [Authorize(Policy = "AdministratorOnly")]
     public async Task<IActionResult> Create(
         OrganizationRequest request)
     {
@@ -67,6 +72,7 @@ public class OrganizationsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Policy = "AdministratorOnly")]
     public async Task<IActionResult> Update(
         Guid id,
         OrganizationRequest request)
@@ -90,11 +96,15 @@ public class OrganizationsController : ControllerBase
             await _organizationService.UpdateAsync(id, request);
 
         return organization is null
-            ? NotFound(new { message = $"Organization with ID '{id}' was not found." })
+            ? NotFound(new
+            {
+                message = $"Organization with ID '{id}' was not found."
+            })
             : Ok(organization);
     }
 
     [HttpPatch("{id:guid}/deactivate")]
+    [Authorize(Policy = "AdministratorOnly")]
     public async Task<IActionResult> Deactivate(Guid id)
     {
         var success =
@@ -102,6 +112,9 @@ public class OrganizationsController : ControllerBase
 
         return success
             ? NoContent()
-            : NotFound(new { message = $"Organization with ID '{id}' was not found." });
+            : NotFound(new
+            {
+                message = $"Organization with ID '{id}' was not found."
+            });
     }
 }

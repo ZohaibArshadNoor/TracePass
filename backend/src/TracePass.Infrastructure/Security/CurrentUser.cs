@@ -27,6 +27,10 @@ public class CurrentUser : ICurrentUser
         _httpContextAccessor.HttpContext?
             .User.Identity?.IsAuthenticated ?? false;
 
+    public bool IsAdministrator =>
+    _httpContextAccessor.HttpContext?
+        .User.IsInRole("Administrator") ?? false;
+
     public async Task<Guid?> GetOrganizationIdAsync(
         CancellationToken cancellationToken = default)
     {

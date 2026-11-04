@@ -6,6 +6,8 @@ public interface IOrganizationService
 
     Task<OrganizationResponse?> GetByIdAsync(Guid id);
 
+    Task<OrganizationResponse?> GetAccessibleByIdAsync(Guid id);
+
     Task<OrganizationResponse> CreateAsync(
         OrganizationRequest request);
 
